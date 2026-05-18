@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rafff Control Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <aside class="sidebar">
+      <div class="brand-block">
+        <p class="eyebrow">Dashboard</p>
+        <h1>Rafff Control Center</h1>
+        <p class="muted">Ticket King style editing for your live bot, with preview before save.</p>
+      </div>
+
+      <section class="card compact">
+        <h2>Connection</h2>
+        <label>API Base URL<input id="apiBase" placeholder="https://your-api.example.com"></label>
+        <label>API Key<input id="apiKey" type="password" placeholder="Dashboard API key"></label>
+        <button id="connectButton" class="primary">Connect</button>
+        <p id="connectionStatus" class="muted small">Not connected.</p>
+      </section>
+
+      <section class="card compact">
+        <div class="section-head">
+          <h2>Panels</h2>
+          <button id="refreshButton" class="ghost">Refresh</button>
+        </div>
+        <div id="panelList" class="list-stack"></div>
+      </section>
+
+      <section class="card compact">
+        <h2>Ticket Types</h2>
+        <div id="ticketTypeList" class="list-stack"></div>
+      </section>
+    </aside>
+
+    <main class="main-grid">
+      <section class="card editor-card">
+        <div class="section-head">
+          <h2>Panel Editor</h2>
+          <span id="currentPanelBadge" class="badge">No panel selected</span>
+        </div>
+        <div class="editor-grid">
+          <label>Panel Key<input id="panelKey" disabled></label>
+          <label>Title<input id="panelTitle"></label>
+          <label class="full">Description<textarea id="panelDescription" rows="5"></textarea></label>
+          <label>Theme<select id="panelTheme"></select></label>
+          <label>Display Mode<select id="panelDisplayMode"><option value="buttons">Buttons</option><option value="dropdown">Dropdown</option></select></label>
+          <label>Color<input id="panelColor"></label>
+          <label>Footer<input id="panelFooter"></label>
+          <label>Image URL<input id="panelImage"></label>
+          <label>Thumbnail URL<input id="panelThumbnail"></label>
+          <label>Dropdown Placeholder<input id="panelPlaceholder"></label>
+          <label class="checkbox"><input id="panelAccessibility" type="checkbox"> Accessibility Mode</label>
+          <label class="full">Accessibility Summary<textarea id="panelAccessibilitySummary" rows="3"></textarea></label>
+        </div>
+        <div class="action-row">
+          <button id="savePanelButton" class="primary">Save Panel</button>
+          <select id="postChannelSelect"></select>
+          <button id="postPanelButton" class="ghost">Post Panel</button>
+        </div>
+      </section>
+
+      <section class="card editor-card">
+        <div class="section-head">
+          <h2>Panel Buttons / Options</h2>
+          <button id="addButtonRow" class="ghost">Add Option</button>
+        </div>
+        <div id="buttonEditorRows" class="button-rows"></div>
+        <div class="action-row">
+          <button id="saveButtonsButton" class="primary">Save Options</button>
+        </div>
+      </section>
+
+      <section class="card editor-card">
+        <div class="section-head">
+          <h2>Ticket Type Editor</h2>
+          <span id="currentTicketTypeBadge" class="badge">No type selected</span>
+        </div>
+        <div class="editor-grid">
+          <label>Key<input id="typeKey" disabled></label>
+          <label>Name<input id="typeName"></label>
+          <label>Emoji<input id="typeEmoji"></label>
+          <label>Support Role<select id="typeRole"></select></label>
+          <label>Category<select id="typeCategory"></select></label>
+          <label class="checkbox"><input id="typeActive" type="checkbox"> Active</label>
+          <label class="full">Description<textarea id="typeDescription" rows="4"></textarea></label>
+        </div>
+        <div class="action-row">
+          <button id="saveTypeButton" class="primary">Save Ticket Type</button>
+        </div>
+      </section>
+
+      <section class="card preview-card">
+        <div class="section-head">
+          <h2>Live Preview</h2>
+          <span class="muted small">This mirrors the dashboard config before save.</span>
+        </div>
+        <div id="previewMount" class="preview-mount"></div>
+      </section>
+
+      <section class="card compact">
+        <div class="section-head">
+          <h2>Guild Settings</h2>
+          <span class="muted small">Raw key/value editor for misc bot config.</span>
+        </div>
+        <div class="editor-grid">
+          <label>Setting Key<input id="settingKey" placeholder="log_channel_tickets"></label>
+          <label>Value<input id="settingValue" placeholder="Discord ID or text"></label>
+        </div>
+        <div class="action-row">
+          <button id="saveSettingButton" class="primary">Save Setting</button>
+        </div>
+        <div id="settingsList" class="settings-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <template id="buttonRowTemplate">
+    <div class="button-row">
+      <label>Ticket Type<select data-field="ticket_type_key"></select></label>
+      <label>Label<input data-field="button_label"></label>
+      <label>Style<select data-field="button_style"><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="success">Success</option><option value="danger">Danger</option></select></label>
+      <label>Sort Order<input data-field="sort_order" type="number"></label>
+      <button data-action="remove" class="danger-text">Remove</button>
+    </div>
+  </template>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
