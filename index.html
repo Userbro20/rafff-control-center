@@ -10,6 +10,36 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div id="lockscreen" class="lockscreen">
+    <div class="lock-card">
+      <p class="lock-kicker">RAFFF CONTROL LOCK</p>
+      <h2>Enter Access PIN</h2>
+      <p class="muted">Use the keypad to unlock the dashboard.</p>
+      <div id="pinDots" class="pin-dots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+      <p id="lockMessage" class="lock-message">Locked</p>
+      <div class="keypad">
+        <button class="key" data-key="1">1</button>
+        <button class="key" data-key="2">2</button>
+        <button class="key" data-key="3">3</button>
+        <button class="key" data-key="4">4</button>
+        <button class="key" data-key="5">5</button>
+        <button class="key" data-key="6">6</button>
+        <button class="key" data-key="7">7</button>
+        <button class="key" data-key="8">8</button>
+        <button class="key" data-key="9">9</button>
+        <button class="key key-action" data-action="clear">Clear</button>
+        <button class="key" data-key="0">0</button>
+        <button class="key key-action" data-action="backspace">⌫</button>
+      </div>
+      <button id="unlockButton" class="btn primary unlock-btn">Unlock</button>
+    </div>
+  </div>
+
   <div class="bg-orb orb-a"></div>
   <div class="bg-orb orb-b"></div>
 

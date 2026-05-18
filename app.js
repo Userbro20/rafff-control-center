@@ -7,9 +7,15 @@ const state = {
 
 const DEFAULT_API_BASE = "https://grab-chemicals-metals-lung.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
+const DASHBOARD_PIN = "9384";
 const THEME_OPTIONS = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
 
 const el = {
+  lockscreen: document.getElementById("lockscreen"),
+  pinDots: [...document.querySelectorAll("#pinDots .dot")],
+  lockMessage: document.getElementById("lockMessage"),
+  unlockButton: document.getElementById("unlockButton"),
+  keypadButtons: [...document.querySelectorAll(".keypad .key")],
   connectionBadge: document.getElementById("connectionBadge"),
   refreshButton: document.getElementById("refreshButton"),
   panelList: document.getElementById("panelList"),
@@ -54,6 +60,9 @@ const el = {
   rowTemplate: document.getElementById("buttonRowTemplate"),
 };
 
+let enteredPin = "";
+let unlocked = false;
+
 for (const theme of THEME_OPTIONS) {
   const option = document.createElement("option");
   option.value = theme;
@@ -73,6 +82,35 @@ function setStatus(online, text) {
   el.connectionBadge.textContent = text;
   el.connectionBadge.classList.remove("online", "offline");
   el.connectionBadge.classList.add(online ? "online" : "offline");
+}
+
+function updatePinDots() {
+  el.pinDots.forEach((dot, index) => {
+    dot.classList.toggle("filled", index < enteredPin.length);
+  });
+}
+
+function resetPin(message = "Locked", isError = false) {
+  enteredPin = "";
+  updatePinDots();
+  el.lockMessage.textContent = message;
+  el.lockMessage.classList.toggle("error", isError);
+}
+
+function unlockDashboard() {
+  unlocked = true;
+  el.lockscreen.classList.add("hidden");
+  connectAndLoad();
+}
+
+function attemptUnlock() {
+  if (enteredPin === DASHBOARD_PIN) {
+    el.lockMessage.classList.remove("error");
+    el.lockMessage.textContent = "Unlocked";
+    unlockDashboard();
+    return;
+  }
+  resetPin("Wrong PIN. Try again.", true);
 }
 
 function connectionErrorText(base, message) {
@@ -105,6 +143,7 @@ async function callApi(path, options = {}) {
 }
 
 async function connectAndLoad() {
+  if (!unlocked) return;
   const base = apiBase();
   setStatus(false, "Connecting...");
   try {
@@ -428,6 +467,46 @@ function wireEvents() {
     button.onclick = () => switchTab(button.dataset.tab);
   });
 
+  el.keypadButtons.forEach((button) => {
+    button.onclick = () => {
+      const key = button.dataset.key;
+      const action = button.dataset.action;
+      if (action === "clear") {
+        resetPin("Locked", false);
+        return;
+      }
+      if (action === "backspace") {
+        enteredPin = enteredPin.slice(0, -1);
+        updatePinDots();
+        return;
+      }
+      if (!key || enteredPin.length >= 4) return;
+      enteredPin += key;
+      updatePinDots();
+      if (enteredPin.length === 4) attemptUnlock();
+    };
+  });
+
+  el.unlockButton.onclick = () => attemptUnlock();
+
+  window.addEventListener("keydown", (event) => {
+    if (unlocked) return;
+    if (/^[0-9]$/.test(event.key) && enteredPin.length < 4) {
+      enteredPin += event.key;
+      updatePinDots();
+      if (enteredPin.length === 4) attemptUnlock();
+      return;
+    }
+    if (event.key === "Backspace") {
+      enteredPin = enteredPin.slice(0, -1);
+      updatePinDots();
+      return;
+    }
+    if (event.key === "Enter") {
+      attemptUnlock();
+    }
+  });
+
   [
     el.panelTitle,
     el.panelDescription,
@@ -459,4 +538,4 @@ function renderAll() {
 
 wireEvents();
 switchTab("panel");
-connectAndLoad();
+resetPin();

@@ -31,6 +31,95 @@ html, body {
   pointer-events: none;
 }
 
+.lockscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at top, rgba(31,178,122,0.16), transparent 45%), rgba(5, 9, 14, 0.9);
+  backdrop-filter: blur(14px);
+}
+
+.lockscreen.hidden {
+  display: none;
+}
+
+.lock-card {
+  width: min(420px, 92vw);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(20,27,36,0.95), rgba(20,27,36,0.88));
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.lock-kicker {
+  margin: 0 0 6px;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-2);
+}
+
+.pin-dots {
+  margin: 14px auto 10px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pin-dots .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.06);
+}
+
+.pin-dots .dot.filled {
+  background: linear-gradient(140deg, var(--brand), #89e4bf);
+  border-color: transparent;
+}
+
+.lock-message {
+  margin: 0 0 12px;
+  color: var(--muted);
+  min-height: 1.2rem;
+}
+
+.lock-message.error {
+  color: #ff9cab;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+  margin-bottom: 12px;
+}
+
+.key {
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.key-action {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.unlock-btn {
+  width: 100%;
+}
+
 .orb-a {
   width: 340px;
   height: 340px;
