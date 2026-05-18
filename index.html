@@ -3,132 +3,136 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Rafff Control Center</title>
+  <title>Rafff Ticket Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <div class="page-shell">
-    <aside class="sidebar">
-      <div class="brand-block">
-        <p class="eyebrow">Ticket Dashboard</p>
-        <h1>Rafff Control Center</h1>
-        <p class="muted">Edit your ticket setup here instead of juggling slash commands.</p>
-      </div>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
 
-      <section class="card compact">
-        <h2>Connection</h2>
-        <label>API Base URL<input id="apiBase" placeholder="https://your-bot-api.example.com"></label>
-        <label>API Key<input id="apiKey" type="password" placeholder="Paste dashboard key"></label>
-        <button id="connectButton" class="primary">Connect</button>
-        <p id="connectionStatus" class="muted small">Not connected. Use a reachable HTTPS API URL for GitHub Pages.</p>
-      </section>
+  <header class="topbar">
+    <div>
+      <p class="kicker">RAFFF SUPPORT</p>
+      <h1>Ticket Dashboard</h1>
+      <p class="subtitle">Build panels, route each option to the right staff team, and preview everything before posting.</p>
+    </div>
+    <div class="topbar-actions">
+      <span id="connectionBadge" class="status-pill offline">Offline</span>
+      <button id="refreshButton" class="btn ghost">Refresh</button>
+    </div>
+  </header>
 
-      <section class="card compact">
-        <div class="section-head">
+  <main class="layout">
+    <aside class="sidebar card">
+      <section>
+        <div class="section-title-row">
           <h2>Panels</h2>
-          <button id="refreshButton" class="ghost">Refresh</button>
+          <span id="panelCount" class="count-pill">0</span>
         </div>
         <div id="panelList" class="list-stack"></div>
       </section>
 
-      <section class="card compact">
-        <h2>Ticket Types</h2>
+      <section>
+        <div class="section-title-row">
+          <h2>Ticket Options</h2>
+          <span id="ticketTypeCount" class="count-pill">0</span>
+        </div>
         <div id="ticketTypeList" class="list-stack"></div>
       </section>
     </aside>
 
-    <main class="main-grid">
-      <section class="card editor-card">
-        <div class="section-head">
-          <h2>Panel Editor</h2>
-          <span id="currentPanelBadge" class="badge">No panel selected</span>
+    <section class="workspace">
+      <div class="tabs card">
+        <button class="tab-btn active" data-tab="panel">Panel Builder</button>
+        <button class="tab-btn" data-tab="options">Panel Options</button>
+        <button class="tab-btn" data-tab="type">Ticket Option</button>
+      </div>
+
+      <section id="tab-panel" class="tab-pane card active">
+        <div class="pane-head">
+          <div>
+            <h2>Panel Builder</h2>
+            <p id="currentPanelText" class="muted">Select a panel to begin.</p>
+          </div>
+          <div class="row-actions">
+            <select id="postChannelSelect"></select>
+            <button id="postPanelButton" class="btn ghost">Post In Discord</button>
+            <button id="savePanelButton" class="btn primary">Save Panel</button>
+          </div>
         </div>
-        <div class="editor-grid">
+
+        <div class="form-grid">
           <label>Panel Key<input id="panelKey" disabled></label>
-          <label>Title<input id="panelTitle"></label>
-          <label class="full">Description<textarea id="panelDescription" rows="5"></textarea></label>
           <label>Theme<select id="panelTheme"></select></label>
           <label>Display Mode<select id="panelDisplayMode"><option value="buttons">Buttons</option><option value="dropdown">Dropdown</option></select></label>
-          <label>Color<input id="panelColor"></label>
+          <label>Color<input id="panelColor" placeholder="#2b2d31"></label>
+          <label class="span-2">Title<input id="panelTitle"></label>
+          <label class="span-2">Description<textarea id="panelDescription" rows="5"></textarea></label>
           <label>Footer<input id="panelFooter"></label>
+          <label>Dropdown Placeholder<input id="panelPlaceholder"></label>
           <label>Image URL<input id="panelImage"></label>
           <label>Thumbnail URL<input id="panelThumbnail"></label>
-          <label>Dropdown Placeholder<input id="panelPlaceholder"></label>
-          <label class="checkbox"><input id="panelAccessibility" type="checkbox"> Accessibility Mode</label>
-          <label class="full">Accessibility Summary<textarea id="panelAccessibilitySummary" rows="3"></textarea></label>
-        </div>
-        <div class="action-row">
-          <button id="savePanelButton" class="primary">Save Panel</button>
-          <select id="postChannelSelect"></select>
-          <button id="postPanelButton" class="ghost">Post To Discord</button>
+          <label class="checkbox-row"><input id="panelAccessibility" type="checkbox">Accessibility mode enabled</label>
+          <label class="span-2">Accessibility Summary<textarea id="panelAccessibilitySummary" rows="3"></textarea></label>
         </div>
       </section>
 
-      <section class="card editor-card">
-        <div class="section-head">
-          <h2>Panel Options</h2>
-          <button id="addButtonRow" class="ghost">Add Option</button>
+      <section id="tab-options" class="tab-pane card">
+        <div class="pane-head">
+          <div>
+            <h2>Panel Options</h2>
+            <p class="muted">Configure button/dropdown options for the selected panel.</p>
+          </div>
+          <div class="row-actions">
+            <button id="addButtonRow" class="btn ghost">Add Option</button>
+            <button id="saveButtonsButton" class="btn primary">Save Options</button>
+          </div>
         </div>
-        <div id="buttonEditorRows" class="button-rows"></div>
-        <div class="action-row">
-          <button id="saveButtonsButton" class="primary">Save Options</button>
-        </div>
+        <div id="buttonEditorRows" class="option-rows"></div>
       </section>
 
-      <section class="card editor-card">
-        <div class="section-head">
-          <h2>Ticket Type Editor</h2>
-          <span id="currentTicketTypeBadge" class="badge">No type selected</span>
+      <section id="tab-type" class="tab-pane card">
+        <div class="pane-head">
+          <div>
+            <h2>Ticket Option</h2>
+            <p id="currentTypeText" class="muted">Select an option to edit routing and details.</p>
+          </div>
+          <button id="saveTypeButton" class="btn primary">Save Ticket Option</button>
         </div>
-        <div class="editor-grid">
+
+        <div class="form-grid">
           <label>Key<input id="typeKey" disabled></label>
           <label>Name<input id="typeName"></label>
           <label>Emoji<input id="typeEmoji"></label>
-          <label>Support Role<select id="typeRole"></select></label>
+          <label>Staff Role<select id="typeRole"></select></label>
           <label>Category<select id="typeCategory"></select></label>
-          <label class="checkbox"><input id="typeActive" type="checkbox"> Active</label>
-          <label class="full">Description<textarea id="typeDescription" rows="4"></textarea></label>
-        </div>
-        <div class="action-row">
-          <button id="saveTypeButton" class="primary">Save Ticket Type</button>
+          <label class="checkbox-row"><input id="typeActive" type="checkbox">Active</label>
+          <label class="span-2">Description<textarea id="typeDescription" rows="4"></textarea></label>
         </div>
       </section>
+    </section>
 
-      <section class="card preview-card">
-        <div class="section-head">
+    <aside class="preview card">
+      <div class="pane-head slim">
+        <div>
           <h2>Live Preview</h2>
-          <span class="muted small">Preview updates as you type.</span>
+          <p class="muted">Matches your current form values.</p>
         </div>
-        <div id="previewMount" class="preview-mount"></div>
-      </section>
-
-      <section class="card compact">
-        <div class="section-head">
-          <h2>Guild Settings</h2>
-          <span class="muted small">Quick key/value editor for extra settings.</span>
-        </div>
-        <div class="editor-grid">
-          <label>Setting Key<input id="settingKey" placeholder="log_channel_tickets"></label>
-          <label>Value<input id="settingValue" placeholder="Discord ID or text"></label>
-        </div>
-        <div class="action-row">
-          <button id="saveSettingButton" class="primary">Save Setting</button>
-        </div>
-        <div id="settingsList" class="settings-list"></div>
-      </section>
-    </main>
-  </div>
+      </div>
+      <div id="previewMount" class="preview-mount"></div>
+    </aside>
+  </main>
 
   <template id="buttonRowTemplate">
-    <div class="button-row">
-      <label>Ticket Type<select data-field="ticket_type_key"></select></label>
+    <div class="option-row">
+      <label>Ticket Option<select data-field="ticket_type_key"></select></label>
       <label>Label<input data-field="button_label"></label>
       <label>Style<select data-field="button_style"><option value="primary">Primary</option><option value="secondary">Secondary</option><option value="success">Success</option><option value="danger">Danger</option></select></label>
-      <label>Sort Order<input data-field="sort_order" type="number"></label>
-      <button data-action="remove" class="danger-text">Remove</button>
+      <label>Order<input data-field="sort_order" type="number"></label>
+      <button data-action="remove" class="btn danger">Remove</button>
     </div>
   </template>
 

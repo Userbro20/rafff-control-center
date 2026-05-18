@@ -2,21 +2,28 @@ const state = {
   data: null,
   selectedPanelKey: null,
   selectedTypeKey: null,
+  activeTab: "panel",
 };
 
 const DEFAULT_API_BASE = "https://try-hockey-warming-meaning.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
+const THEME_OPTIONS = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
 
-const themeOptions = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
-
-const elements = {
-  apiBase: document.getElementById("apiBase"),
-  apiKey: document.getElementById("apiKey"),
-  connectButton: document.getElementById("connectButton"),
+const el = {
+  connectionBadge: document.getElementById("connectionBadge"),
   refreshButton: document.getElementById("refreshButton"),
-  connectionStatus: document.getElementById("connectionStatus"),
   panelList: document.getElementById("panelList"),
   ticketTypeList: document.getElementById("ticketTypeList"),
+  panelCount: document.getElementById("panelCount"),
+  ticketTypeCount: document.getElementById("ticketTypeCount"),
+  tabButtons: [...document.querySelectorAll(".tab-btn")],
+  tabPanes: {
+    panel: document.getElementById("tab-panel"),
+    options: document.getElementById("tab-options"),
+    type: document.getElementById("tab-type"),
+  },
+  currentPanelText: document.getElementById("currentPanelText"),
+  currentTypeText: document.getElementById("currentTypeText"),
   panelKey: document.getElementById("panelKey"),
   panelTitle: document.getElementById("panelTitle"),
   panelDescription: document.getElementById("panelDescription"),
@@ -29,7 +36,6 @@ const elements = {
   panelPlaceholder: document.getElementById("panelPlaceholder"),
   panelAccessibility: document.getElementById("panelAccessibility"),
   panelAccessibilitySummary: document.getElementById("panelAccessibilitySummary"),
-  currentPanelBadge: document.getElementById("currentPanelBadge"),
   savePanelButton: document.getElementById("savePanelButton"),
   postChannelSelect: document.getElementById("postChannelSelect"),
   postPanelButton: document.getElementById("postPanelButton"),
@@ -43,33 +49,52 @@ const elements = {
   typeCategory: document.getElementById("typeCategory"),
   typeActive: document.getElementById("typeActive"),
   typeDescription: document.getElementById("typeDescription"),
-  currentTicketTypeBadge: document.getElementById("currentTicketTypeBadge"),
   saveTypeButton: document.getElementById("saveTypeButton"),
   previewMount: document.getElementById("previewMount"),
-  settingKey: document.getElementById("settingKey"),
-  settingValue: document.getElementById("settingValue"),
-  saveSettingButton: document.getElementById("saveSettingButton"),
-  settingsList: document.getElementById("settingsList"),
-  buttonRowTemplate: document.getElementById("buttonRowTemplate"),
+  rowTemplate: document.getElementById("buttonRowTemplate"),
 };
 
-for (const theme of themeOptions) {
+for (const theme of THEME_OPTIONS) {
   const option = document.createElement("option");
   option.value = theme;
   option.textContent = theme;
-  elements.panelTheme.append(option);
+  el.panelTheme.append(option);
 }
 
-elements.apiBase.value = localStorage.getItem("rafff-dashboard-api-base") || DEFAULT_API_BASE;
-elements.apiKey.value = localStorage.getItem("rafff-dashboard-api-key") || DEFAULT_API_KEY;
+function apiBase() {
+  return localStorage.getItem("rafff-dashboard-api-base") || DEFAULT_API_BASE;
+}
 
-async function api(path, options = {}) {
-  const base = elements.apiBase.value.replace(/\/$/, "");
-  const apiKey = elements.apiKey.value.trim();
-  if (!base || !apiKey) throw new Error("API base URL and API key are required.");
+function apiKey() {
+  return localStorage.getItem("rafff-dashboard-api-key") || DEFAULT_API_KEY;
+}
+
+function setStatus(online, text) {
+  el.connectionBadge.textContent = text;
+  el.connectionBadge.classList.remove("online", "offline");
+  el.connectionBadge.classList.add(online ? "online" : "offline");
+}
+
+function connectionErrorText(base, message) {
+  const lower = String(message || "").toLowerCase();
+  if (lower.includes("failed to fetch")) {
+    if (window.location.origin.includes("github.io") && /localhost|127\.0\.0\.1/.test(base)) {
+      return "Cannot reach local API from GitHub Pages. Use a public HTTPS API URL.";
+    }
+    return "Dashboard API is unreachable right now. Check bot + tunnel are running.";
+  }
+  return String(message || "Connection failed");
+}
+
+async function callApi(path, options = {}) {
+  const base = apiBase().replace(/\/$/, "");
+  const key = apiKey().trim();
+  if (!base || !key) throw new Error("Dashboard API base or key is missing.");
+
   const headers = new Headers(options.headers || {});
-  headers.set("Authorization", `Bearer ${apiKey}`);
+  headers.set("Authorization", `Bearer ${key}`);
   headers.set("Content-Type", "application/json");
+
   const response = await fetch(`${base}${path}`, { ...options, headers });
   if (!response.ok) {
     const text = await response.text();
@@ -79,199 +104,191 @@ async function api(path, options = {}) {
   return response.json();
 }
 
-function explainConnectionError(base, error) {
-  const message = String(error?.message || "Connection failed");
-  const isFetchFailure = message.toLowerCase().includes("failed to fetch");
-  if (!isFetchFailure) return message;
-
-  const origin = window.location.origin;
-  const isLocalBase = /https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/i.test(base);
-  const isHttpsPage = origin.startsWith("https://");
-
-  if (isLocalBase && origin.includes("github.io")) {
-    return "Failed to fetch: this site is on GitHub Pages, so 127.0.0.1 points to your own device, not your bot host. Use a public HTTPS API URL.";
-  }
-  if (isHttpsPage && base.startsWith("http://")) {
-    return "Failed to fetch: your page is HTTPS but API base is HTTP. Use an HTTPS API URL.";
-  }
-  return "Failed to fetch: API URL is unreachable, blocked by CORS, or the bot API is not running.";
-}
-
-async function connect() {
-  localStorage.setItem("rafff-dashboard-api-base", elements.apiBase.value.trim());
-  localStorage.setItem("rafff-dashboard-api-key", elements.apiKey.value.trim());
-  elements.connectionStatus.textContent = "Connecting...";
-  const data = await api("/api/bootstrap");
-  state.data = data;
-  state.selectedPanelKey = data.panels[0]?.panel_key || null;
-  state.selectedTypeKey = data.ticket_types[0]?.key || null;
-  elements.connectionStatus.textContent = `Connected to ${data.guild.name}`;
-  renderAll();
-}
-
-function renderAll() {
-  renderLists();
-  renderPanelEditor();
-  renderTicketTypeEditor();
-  renderSettings();
-  renderPreview();
-}
-
-function renderLists() {
-  elements.panelList.innerHTML = "";
-  for (const panel of state.data.panels) {
-    const item = document.createElement("button");
-    item.className = `list-item ${panel.panel_key === state.selectedPanelKey ? "active" : ""}`;
-    item.textContent = `${panel.panel_key} · ${panel.title}`;
-    item.onclick = () => {
-      state.selectedPanelKey = panel.panel_key;
-      renderAll();
-    };
-    elements.panelList.append(item);
-  }
-
-  elements.ticketTypeList.innerHTML = "";
-  for (const ticketType of state.data.ticket_types) {
-    const item = document.createElement("button");
-    item.className = `list-item ${ticketType.key === state.selectedTypeKey ? "active" : ""}`;
-    item.textContent = `${ticketType.name} (${ticketType.key})`;
-    item.onclick = () => {
-      state.selectedTypeKey = ticketType.key;
-      renderAll();
-    };
-    elements.ticketTypeList.append(item);
+async function connectAndLoad() {
+  const base = apiBase();
+  setStatus(false, "Connecting...");
+  try {
+    const data = await callApi("/api/bootstrap");
+    state.data = data;
+    state.selectedPanelKey = state.selectedPanelKey || data.panels[0]?.panel_key || null;
+    state.selectedTypeKey = state.selectedTypeKey || data.ticket_types[0]?.key || null;
+    setStatus(true, `Connected · ${data.guild.name}`);
+    renderAll();
+  } catch (error) {
+    setStatus(false, connectionErrorText(base, error.message));
   }
 }
 
 function selectedPanel() {
-  return state.data.panels.find(panel => panel.panel_key === state.selectedPanelKey) || null;
+  return state.data?.panels.find((panel) => panel.panel_key === state.selectedPanelKey) || null;
 }
 
 function selectedButtons() {
-  return [...(state.data.panel_buttons[state.selectedPanelKey] || [])]
-    .sort((a, b) => Number(a.sort_order) - Number(b.sort_order));
+  const rows = state.data?.panel_buttons[state.selectedPanelKey] || [];
+  return [...rows].sort((a, b) => Number(a.sort_order) - Number(b.sort_order));
 }
 
 function selectedType() {
-  return state.data.ticket_types.find(ticketType => ticketType.key === state.selectedTypeKey) || null;
+  return state.data?.ticket_types.find((item) => item.key === state.selectedTypeKey) || null;
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  for (const btn of el.tabButtons) {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  }
+  for (const [name, pane] of Object.entries(el.tabPanes)) {
+    pane.classList.toggle("active", name === tab);
+  }
+}
+
+function renderLists() {
+  const panels = state.data?.panels || [];
+  const types = state.data?.ticket_types || [];
+  el.panelCount.textContent = String(panels.length);
+  el.ticketTypeCount.textContent = String(types.length);
+
+  el.panelList.innerHTML = "";
+  for (const panel of panels) {
+    const button = document.createElement("button");
+    button.className = `list-item ${panel.panel_key === state.selectedPanelKey ? "active" : ""}`;
+    button.textContent = `${panel.panel_key} · ${panel.title}`;
+    button.onclick = () => {
+      state.selectedPanelKey = panel.panel_key;
+      renderPanelEditor();
+      renderOptionRows();
+      renderPreview();
+      renderLists();
+    };
+    el.panelList.append(button);
+  }
+
+  el.ticketTypeList.innerHTML = "";
+  for (const item of types) {
+    const button = document.createElement("button");
+    button.className = `list-item ${item.key === state.selectedTypeKey ? "active" : ""}`;
+    button.textContent = `${item.name} (${item.key})`;
+    button.onclick = () => {
+      state.selectedTypeKey = item.key;
+      switchTab("type");
+      renderTypeEditor();
+      renderLists();
+    };
+    el.ticketTypeList.append(button);
+  }
 }
 
 function renderPanelEditor() {
   const panel = selectedPanel();
   if (!panel) return;
-  elements.currentPanelBadge.textContent = panel.panel_key;
-  elements.panelKey.value = panel.panel_key;
-  elements.panelTitle.value = panel.title || "";
-  elements.panelDescription.value = panel.description || "";
-  elements.panelTheme.value = panel.theme || "classic";
-  elements.panelDisplayMode.value = panel.display_mode || "buttons";
-  elements.panelColor.value = panel.color_hex || "#2b2d31";
-  elements.panelFooter.value = panel.footer_text || "";
-  elements.panelImage.value = panel.image_url || "";
-  elements.panelThumbnail.value = panel.thumbnail_url || "";
-  elements.panelPlaceholder.value = panel.dropdown_placeholder || "Choose a ticket type";
-  elements.panelAccessibility.checked = Boolean(panel.accessibility_mode);
-  elements.panelAccessibilitySummary.value = panel.accessibility_summary || "";
-  populateChannelSelect();
-  renderButtonRows();
-}
 
-function renderButtonRows() {
-  const buttons = selectedButtons();
-  elements.buttonEditorRows.innerHTML = "";
-  for (const button of buttons) {
-    elements.buttonEditorRows.append(buildButtonRow(button));
-  }
-}
+  el.currentPanelText.textContent = `${panel.panel_key} panel`;
+  el.panelKey.value = panel.panel_key;
+  el.panelTitle.value = panel.title || "";
+  el.panelDescription.value = panel.description || "";
+  el.panelTheme.value = panel.theme || "classic";
+  el.panelDisplayMode.value = panel.display_mode || "buttons";
+  el.panelColor.value = panel.color_hex || "#2b2d31";
+  el.panelFooter.value = panel.footer_text || "";
+  el.panelImage.value = panel.image_url || "";
+  el.panelThumbnail.value = panel.thumbnail_url || "";
+  el.panelPlaceholder.value = panel.dropdown_placeholder || "Choose a ticket type";
+  el.panelAccessibility.checked = Boolean(panel.accessibility_mode);
+  el.panelAccessibilitySummary.value = panel.accessibility_summary || "";
 
-function buildButtonRow(button = {}) {
-  const fragment = elements.buttonRowTemplate.content.cloneNode(true);
-  const row = fragment.querySelector(".button-row");
-  for (const [field, value] of Object.entries(button)) {
-    const input = row.querySelector(`[data-field="${field}"]`);
-    if (input) input.value = value;
-  }
-  const typeSelect = row.querySelector('[data-field="ticket_type_key"]');
-  for (const ticketType of state.data.ticket_types) {
-    const option = document.createElement("option");
-    option.value = ticketType.key;
-    option.textContent = `${ticketType.name} (${ticketType.key})`;
-    typeSelect.append(option);
-  }
-  typeSelect.value = button.ticket_type_key || state.data.ticket_types[0]?.key || "";
-  row.querySelector('[data-action="remove"]').onclick = () => row.remove();
-  return row;
-}
-
-function populateChannelSelect() {
-  const currentValue = elements.postChannelSelect.value;
-  elements.postChannelSelect.innerHTML = "";
-  for (const channel of state.data.text_channels) {
+  const selected = el.postChannelSelect.value;
+  el.postChannelSelect.innerHTML = "";
+  for (const channel of state.data.text_channels || []) {
     const option = document.createElement("option");
     option.value = channel.id;
     option.textContent = `#${channel.name}`;
-    elements.postChannelSelect.append(option);
+    el.postChannelSelect.append(option);
   }
-  if (currentValue) elements.postChannelSelect.value = currentValue;
+  if (selected) el.postChannelSelect.value = selected;
 }
 
-function renderTicketTypeEditor() {
-  const ticketType = selectedType();
-  if (!ticketType) return;
-  elements.currentTicketTypeBadge.textContent = ticketType.key;
-  elements.typeKey.value = ticketType.key;
-  elements.typeName.value = ticketType.name;
-  elements.typeEmoji.value = ticketType.emoji || "";
-  fillSelect(elements.typeRole, state.data.roles, ticketType.support_role_id);
-  fillSelect(elements.typeCategory, state.data.categories, ticketType.category_id);
-  elements.typeActive.checked = Boolean(ticketType.is_active);
-  elements.typeDescription.value = ticketType.description || "";
+function renderOptionRows() {
+  const rows = selectedButtons();
+  el.buttonEditorRows.innerHTML = "";
+  for (const row of rows) {
+    el.buttonEditorRows.append(buildOptionRow(row));
+  }
 }
 
-function fillSelect(select, items, selectedId) {
-  select.innerHTML = "";
-  for (const item of items) {
+function buildOptionRow(data = {}) {
+  const node = el.rowTemplate.content.cloneNode(true);
+  const row = node.querySelector(".option-row");
+  const typeSelect = row.querySelector('[data-field="ticket_type_key"]');
+
+  for (const type of state.data.ticket_types || []) {
     const option = document.createElement("option");
-    option.value = item.id;
-    option.textContent = item.name;
+    option.value = type.key;
+    option.textContent = `${type.name} (${type.key})`;
+    typeSelect.append(option);
+  }
+
+  const set = (field, value) => {
+    const input = row.querySelector(`[data-field="${field}"]`);
+    if (input) input.value = value ?? "";
+  };
+
+  set("ticket_type_key", data.ticket_type_key || state.data.ticket_types[0]?.key || "");
+  set("button_label", data.button_label || "");
+  set("button_style", data.button_style || "primary");
+  set("sort_order", data.sort_order ?? 0);
+
+  row.querySelector('[data-action="remove"]').onclick = () => {
+    row.remove();
+    renderPreview();
+  };
+
+  return row;
+}
+
+function renderTypeEditor() {
+  const type = selectedType();
+  if (!type) return;
+
+  el.currentTypeText.textContent = `${type.name} (${type.key})`;
+  el.typeKey.value = type.key;
+  el.typeName.value = type.name || "";
+  el.typeEmoji.value = type.emoji || "";
+  el.typeDescription.value = type.description || "";
+  el.typeActive.checked = Boolean(type.is_active);
+
+  fillSelect(el.typeRole, state.data.roles || [], type.support_role_id);
+  fillSelect(el.typeCategory, state.data.categories || [], type.category_id);
+}
+
+function fillSelect(select, rows, selectedId) {
+  select.innerHTML = "";
+  for (const row of rows) {
+    const option = document.createElement("option");
+    option.value = row.id;
+    option.textContent = row.name;
     select.append(option);
   }
   select.value = String(selectedId || "");
 }
 
-function renderSettings() {
-  elements.settingsList.innerHTML = "";
-  const settings = state.data.guild_settings || {};
-  for (const key of Object.keys(settings).sort()) {
-    const line = document.createElement("div");
-    line.className = "list-item";
-    line.textContent = `${key}: ${settings[key]}`;
-    line.onclick = () => {
-      elements.settingKey.value = key;
-      elements.settingValue.value = settings[key];
-    };
-    elements.settingsList.append(line);
-  }
-}
-
-function gatherPanelPayload() {
+function panelPayload() {
   return {
-    title: elements.panelTitle.value,
-    description: elements.panelDescription.value,
-    theme: elements.panelTheme.value,
-    display_mode: elements.panelDisplayMode.value,
-    color_hex: elements.panelColor.value,
-    footer_text: elements.panelFooter.value,
-    image_url: elements.panelImage.value,
-    thumbnail_url: elements.panelThumbnail.value,
-    dropdown_placeholder: elements.panelPlaceholder.value,
-    accessibility_mode: elements.panelAccessibility.checked,
-    accessibility_summary: elements.panelAccessibilitySummary.value,
+    title: el.panelTitle.value,
+    description: el.panelDescription.value,
+    theme: el.panelTheme.value,
+    display_mode: el.panelDisplayMode.value,
+    color_hex: el.panelColor.value,
+    footer_text: el.panelFooter.value,
+    image_url: el.panelImage.value,
+    thumbnail_url: el.panelThumbnail.value,
+    dropdown_placeholder: el.panelPlaceholder.value,
+    accessibility_mode: el.panelAccessibility.checked,
+    accessibility_summary: el.panelAccessibilitySummary.value,
   };
 }
 
-function gatherButtonPayload() {
-  return [...elements.buttonEditorRows.querySelectorAll(".button-row")].map(row => ({
+function optionPayload() {
+  return [...el.buttonEditorRows.querySelectorAll(".option-row")].map((row) => ({
     ticket_type_key: row.querySelector('[data-field="ticket_type_key"]').value,
     button_label: row.querySelector('[data-field="button_label"]').value,
     button_style: row.querySelector('[data-field="button_style"]').value,
@@ -280,157 +297,166 @@ function gatherButtonPayload() {
 }
 
 function renderPreview() {
-  const panel = { ...selectedPanel(), ...gatherPanelPayload() };
-  const buttons = gatherButtonPayload();
+  const panel = selectedPanel();
   if (!panel) return;
 
-  const frame = document.createElement("div");
-  frame.className = "discord-frame";
-  const embed = document.createElement("div");
-  embed.className = `discord-embed ${panel.theme === "ticket_king" ? "ticket-king" : ""}`;
-  embed.style.borderLeftColor = panel.color_hex || "#ff6b35";
+  const p = { ...panel, ...panelPayload() };
+  const rows = optionPayload();
 
-  if (panel.theme === "ticket_king") {
-    const lines = (panel.description || "").split("\n").map(line => line.trim()).filter(Boolean);
+  const shell = document.createElement("div");
+  shell.className = "discord-shell";
+
+  const embed = document.createElement("div");
+  embed.className = "discord-embed";
+  embed.style.borderLeftColor = p.color_hex || "#1fb27a";
+
+  if (p.theme === "ticket_king") {
+    const lines = (p.description || "").split("\n").map((line) => line.trim()).filter(Boolean);
     const author = document.createElement("div");
     author.className = "embed-author";
-    author.textContent = panel.title || "Service Panel";
-    embed.append(author);
-
+    author.textContent = p.title || "Service Panel";
     const title = document.createElement("div");
     title.className = "embed-title";
     title.textContent = lines[0] || "Support & Inquiries";
-    embed.append(title);
-
     const body = document.createElement("div");
     body.className = "embed-description";
     body.textContent = lines.slice(1).join("\n") || "Need help? Open a ticket below.";
-    embed.append(body);
+    embed.append(author, title, body);
   } else {
     const title = document.createElement("div");
     title.className = "embed-title";
-    title.textContent = panel.title || "Support Panel";
+    title.textContent = p.title || "Support Panel";
     const body = document.createElement("div");
     body.className = "embed-description";
-    body.textContent = panel.description || "Panel description";
+    body.textContent = p.description || "Panel description";
     embed.append(title, body);
   }
 
-  if (panel.image_url) {
+  if (p.image_url) {
     const image = document.createElement("img");
     image.className = "embed-image";
-    image.src = panel.image_url;
+    image.src = p.image_url;
     embed.append(image);
   }
 
-  if (panel.footer_text) {
+  if (p.footer_text) {
     const footer = document.createElement("div");
     footer.className = "embed-footer";
-    footer.textContent = panel.footer_text;
+    footer.textContent = p.footer_text;
     embed.append(footer);
   }
 
   const actions = document.createElement("div");
   actions.className = "preview-actions";
-  if (panel.display_mode === "dropdown") {
+  if (p.display_mode === "dropdown") {
     const select = document.createElement("div");
     select.className = "preview-select";
-    const firstLabel = buttons[0]?.button_label || "Choose a ticket type";
-    select.textContent = `${panel.dropdown_placeholder || "Choose a ticket type"} · ${firstLabel}`;
+    select.textContent = p.dropdown_placeholder || "Choose a ticket type";
     actions.append(select);
   } else {
-    for (const button of buttons) {
-      const item = document.createElement("div");
-      item.className = `preview-button ${button.button_style || "primary"}`;
-      item.textContent = button.button_label || button.ticket_type_key || "Ticket";
-      actions.append(item);
+    for (const row of rows) {
+      const btn = document.createElement("div");
+      btn.className = `preview-button ${row.button_style || "primary"}`;
+      btn.textContent = row.button_label || row.ticket_type_key || "Ticket";
+      actions.append(btn);
     }
   }
 
-  frame.append(embed, actions);
-  elements.previewMount.replaceChildren(frame);
+  shell.append(embed, actions);
+  el.previewMount.replaceChildren(shell);
 }
 
 async function savePanel() {
   const panel = selectedPanel();
-  await api(`/api/panels/${panel.panel_key}`, { method: "PUT", body: JSON.stringify(gatherPanelPayload()) });
-  await connect();
+  if (!panel) return;
+  await callApi(`/api/panels/${panel.panel_key}`, {
+    method: "PUT",
+    body: JSON.stringify(panelPayload()),
+  });
+  await connectAndLoad();
 }
 
-async function saveButtons() {
+async function saveOptions() {
   const panel = selectedPanel();
-  await api(`/api/panels/${panel.panel_key}/buttons`, { method: "PUT", body: JSON.stringify({ buttons: gatherButtonPayload() }) });
-  await connect();
+  if (!panel) return;
+  await callApi(`/api/panels/${panel.panel_key}/buttons`, {
+    method: "PUT",
+    body: JSON.stringify({ buttons: optionPayload() }),
+  });
+  await connectAndLoad();
 }
 
 async function saveType() {
-  const ticketType = selectedType();
-  await api(`/api/ticket-types/${ticketType.key}`, {
+  const type = selectedType();
+  if (!type) return;
+  await callApi(`/api/ticket-types/${type.key}`, {
     method: "PUT",
     body: JSON.stringify({
-      name: elements.typeName.value,
-      emoji: elements.typeEmoji.value,
-      support_role_id: Number(elements.typeRole.value),
-      category_id: Number(elements.typeCategory.value),
-      is_active: elements.typeActive.checked,
-      description: elements.typeDescription.value,
+      name: el.typeName.value,
+      emoji: el.typeEmoji.value,
+      support_role_id: Number(el.typeRole.value),
+      category_id: Number(el.typeCategory.value),
+      is_active: el.typeActive.checked,
+      description: el.typeDescription.value,
     }),
   });
-  await connect();
-}
-
-async function saveSetting() {
-  await api(`/api/guild-settings/${encodeURIComponent(elements.settingKey.value.trim())}`, {
-    method: "PUT",
-    body: JSON.stringify({ value: elements.settingValue.value }),
-  });
-  await connect();
+  await connectAndLoad();
 }
 
 async function postPanel() {
   const panel = selectedPanel();
-  await api(`/api/panels/${panel.panel_key}/post`, {
+  if (!panel) return;
+  await callApi(`/api/panels/${panel.panel_key}/post`, {
     method: "POST",
-    body: JSON.stringify({ channel_id: Number(elements.postChannelSelect.value) }),
+    body: JSON.stringify({ channel_id: Number(el.postChannelSelect.value) }),
   });
-  elements.connectionStatus.textContent = `Posted panel ${panel.panel_key}.`;
+  setStatus(true, `Posted ${panel.panel_key} panel`);
 }
 
-elements.connectButton.onclick = () =>
-  connect().catch(error => {
-    elements.connectionStatus.textContent = explainConnectionError(elements.apiBase.value.trim(), error);
+function wireEvents() {
+  el.refreshButton.onclick = () => connectAndLoad();
+  el.savePanelButton.onclick = () => savePanel().catch((err) => setStatus(false, err.message));
+  el.saveButtonsButton.onclick = () => saveOptions().catch((err) => setStatus(false, err.message));
+  el.saveTypeButton.onclick = () => saveType().catch((err) => setStatus(false, err.message));
+  el.postPanelButton.onclick = () => postPanel().catch((err) => setStatus(false, err.message));
+  el.addButtonRow.onclick = () => {
+    el.buttonEditorRows.append(buildOptionRow());
+    renderPreview();
+  };
+
+  el.tabButtons.forEach((button) => {
+    button.onclick = () => switchTab(button.dataset.tab);
   });
-elements.refreshButton.onclick = () =>
-  connect().catch(error => {
-    elements.connectionStatus.textContent = explainConnectionError(elements.apiBase.value.trim(), error);
+
+  [
+    el.panelTitle,
+    el.panelDescription,
+    el.panelTheme,
+    el.panelDisplayMode,
+    el.panelColor,
+    el.panelFooter,
+    el.panelImage,
+    el.panelThumbnail,
+    el.panelPlaceholder,
+    el.panelAccessibility,
+    el.panelAccessibilitySummary,
+  ].forEach((field) => {
+    field.addEventListener("input", renderPreview);
   });
-elements.savePanelButton.onclick = () => savePanel().catch(error => alert(error.message));
-elements.saveButtonsButton.onclick = () => saveButtons().catch(error => alert(error.message));
-elements.saveTypeButton.onclick = () => saveType().catch(error => alert(error.message));
-elements.saveSettingButton.onclick = () => saveSetting().catch(error => alert(error.message));
-elements.postPanelButton.onclick = () => postPanel().catch(error => alert(error.message));
-elements.addButtonRow.onclick = () => elements.buttonEditorRows.append(buildButtonRow());
 
-[
-  elements.panelTitle,
-  elements.panelDescription,
-  elements.panelTheme,
-  elements.panelDisplayMode,
-  elements.panelColor,
-  elements.panelFooter,
-  elements.panelImage,
-  elements.panelThumbnail,
-  elements.panelPlaceholder,
-  elements.panelAccessibility,
-  elements.panelAccessibilitySummary,
-].forEach(element => element.addEventListener("input", renderPreview));
-
-document.addEventListener("input", event => {
-  if (event.target.closest(".button-row")) renderPreview();
-});
-
-if (elements.apiBase.value && elements.apiKey.value) {
-  connect().catch(error => {
-    elements.connectionStatus.textContent = explainConnectionError(elements.apiBase.value.trim(), error);
+  document.addEventListener("input", (event) => {
+    if (event.target.closest(".option-row")) renderPreview();
   });
 }
+
+function renderAll() {
+  renderLists();
+  renderPanelEditor();
+  renderOptionRows();
+  renderTypeEditor();
+  renderPreview();
+}
+
+wireEvents();
+switchTab("panel");
+connectAndLoad();
