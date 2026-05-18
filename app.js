@@ -259,15 +259,31 @@ function renderPanelEditor() {
   el.panelAccessibility.checked = Boolean(panel.accessibility_mode);
   el.panelAccessibilitySummary.value = panel.accessibility_summary || "";
 
-  const selected = el.postChannelSelect.value;
+  const previousSelection = String(el.postChannelSelect.value || "");
   el.postChannelSelect.innerHTML = "";
-  for (const channel of state.data.text_channels || []) {
+  const channels = state.data.text_channels || [];
+  for (const channel of channels) {
     const option = document.createElement("option");
-    option.value = channel.id;
+    option.value = String(channel.id);
     option.textContent = `#${channel.name}`;
     el.postChannelSelect.append(option);
   }
-  if (selected) el.postChannelSelect.value = selected;
+
+  if (channels.length === 0) {
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = "No text channels available";
+    el.postChannelSelect.append(option);
+    el.postChannelSelect.value = "";
+    el.postPanelButton.disabled = true;
+    return;
+  }
+
+  const previousStillExists = channels.some((channel) => String(channel.id) === previousSelection);
+  el.postChannelSelect.value = previousStillExists
+    ? previousSelection
+    : String(channels[0].id);
+  el.postPanelButton.disabled = false;
 }
 
 function renderOptionRows() {
@@ -469,9 +485,14 @@ async function saveType() {
 async function postPanel() {
   const panel = selectedPanel();
   if (!panel) return;
+  const channelId = Number(el.postChannelSelect.value);
+  if (!Number.isFinite(channelId) || channelId <= 0) {
+    setStatus(false, "Choose a valid text channel before posting.");
+    return;
+  }
   await callApi(`/api/panels/${panel.panel_key}/post`, {
     method: "POST",
-    body: JSON.stringify({ channel_id: Number(el.postChannelSelect.value) }),
+    body: JSON.stringify({ channel_id: channelId }),
   });
   setStatus(true, `Posted ${panel.panel_key} panel`);
 }
