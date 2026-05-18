@@ -375,6 +375,11 @@ function optionPayload() {
   }));
 }
 
+function readSnowflake(value) {
+  const raw = String(value || "").trim();
+  return /^\d+$/.test(raw) ? raw : "";
+}
+
 function renderPreview() {
   const panel = selectedPanel();
   if (!panel) return;
@@ -468,13 +473,19 @@ async function saveOptions() {
 async function saveType() {
   const type = selectedType();
   if (!type) return;
+  const supportRoleId = readSnowflake(el.typeRole.value);
+  const categoryId = readSnowflake(el.typeCategory.value);
+  if (!supportRoleId || !categoryId) {
+    setStatus(false, "Choose valid role/category before saving this ticket option.");
+    return;
+  }
   await callApi(`/api/ticket-types/${type.key}`, {
     method: "PUT",
     body: JSON.stringify({
       name: el.typeName.value,
       emoji: el.typeEmoji.value,
-      support_role_id: Number(el.typeRole.value),
-      category_id: Number(el.typeCategory.value),
+      support_role_id: supportRoleId,
+      category_id: categoryId,
       is_active: el.typeActive.checked,
       description: el.typeDescription.value,
     }),
@@ -485,8 +496,8 @@ async function saveType() {
 async function postPanel() {
   const panel = selectedPanel();
   if (!panel) return;
-  const channelId = Number(el.postChannelSelect.value);
-  if (!Number.isFinite(channelId) || channelId <= 0) {
+  const channelId = readSnowflake(el.postChannelSelect.value);
+  if (!channelId) {
     setStatus(false, "Choose a valid text channel before posting.");
     return;
   }
