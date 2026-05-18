@@ -7,6 +7,8 @@ const state = {
 
 const DEFAULT_API_BASE = "https://grab-chemicals-metals-lung.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
+const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
+const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
 const DASHBOARD_PIN = "9384";
 const THEME_OPTIONS = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
 
@@ -71,11 +73,33 @@ for (const theme of THEME_OPTIONS) {
 }
 
 function apiBase() {
-  return localStorage.getItem("rafff-dashboard-api-base") || DEFAULT_API_BASE;
+  const saved = (localStorage.getItem(API_BASE_STORAGE_KEY) || "").trim();
+  const origin = window.location.origin;
+
+  if (!saved) return DEFAULT_API_BASE;
+
+  const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(saved);
+  const isGithubPages = /github\.io$/i.test(window.location.hostname);
+  const isHttps = /^https:\/\//i.test(saved);
+
+  if (isGithubPages && (isLocal || !isHttps)) {
+    localStorage.removeItem(API_BASE_STORAGE_KEY);
+    return DEFAULT_API_BASE;
+  }
+
+  if (/^https?:\/\//i.test(saved)) {
+    return saved;
+  }
+
+  if (/^https?:\/\//i.test(DEFAULT_API_BASE)) {
+    return DEFAULT_API_BASE;
+  }
+
+  return `${origin}`;
 }
 
 function apiKey() {
-  return localStorage.getItem("rafff-dashboard-api-key") || DEFAULT_API_KEY;
+  return localStorage.getItem(API_KEY_STORAGE_KEY) || DEFAULT_API_KEY;
 }
 
 function setStatus(online, text) {
