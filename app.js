@@ -5,7 +5,7 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://try-hockey-warming-meaning.trycloudflare.com";
+const DEFAULT_API_BASE = "https://grab-chemicals-metals-lung.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const THEME_OPTIONS = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
 
