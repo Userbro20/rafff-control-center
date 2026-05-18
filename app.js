@@ -79,6 +79,24 @@ async function api(path, options = {}) {
   return response.json();
 }
 
+function explainConnectionError(base, error) {
+  const message = String(error?.message || "Connection failed");
+  const isFetchFailure = message.toLowerCase().includes("failed to fetch");
+  if (!isFetchFailure) return message;
+
+  const origin = window.location.origin;
+  const isLocalBase = /https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/i.test(base);
+  const isHttpsPage = origin.startsWith("https://");
+
+  if (isLocalBase && origin.includes("github.io")) {
+    return "Failed to fetch: this site is on GitHub Pages, so 127.0.0.1 points to your own device, not your bot host. Use a public HTTPS API URL.";
+  }
+  if (isHttpsPage && base.startsWith("http://")) {
+    return "Failed to fetch: your page is HTTPS but API base is HTTP. Use an HTTPS API URL.";
+  }
+  return "Failed to fetch: API URL is unreachable, blocked by CORS, or the bot API is not running.";
+}
+
 async function connect() {
   localStorage.setItem("rafff-dashboard-api-base", elements.apiBase.value.trim());
   localStorage.setItem("rafff-dashboard-api-key", elements.apiKey.value.trim());
@@ -378,8 +396,14 @@ async function postPanel() {
   elements.connectionStatus.textContent = `Posted panel ${panel.panel_key}.`;
 }
 
-elements.connectButton.onclick = () => connect().catch(error => elements.connectionStatus.textContent = error.message);
-elements.refreshButton.onclick = () => connect().catch(error => elements.connectionStatus.textContent = error.message);
+elements.connectButton.onclick = () =>
+  connect().catch(error => {
+    elements.connectionStatus.textContent = explainConnectionError(elements.apiBase.value.trim(), error);
+  });
+elements.refreshButton.onclick = () =>
+  connect().catch(error => {
+    elements.connectionStatus.textContent = explainConnectionError(elements.apiBase.value.trim(), error);
+  });
 elements.savePanelButton.onclick = () => savePanel().catch(error => alert(error.message));
 elements.saveButtonsButton.onclick = () => saveButtons().catch(error => alert(error.message));
 elements.saveTypeButton.onclick = () => saveType().catch(error => alert(error.message));
@@ -406,7 +430,7 @@ document.addEventListener("input", event => {
 });
 
 if (elements.apiBase.value && elements.apiKey.value) {
-  connect().catch(() => {
-    elements.connectionStatus.textContent = "Connection failed. Check API URL and key.";
+  connect().catch(error => {
+    elements.connectionStatus.textContent = explainConnectionError(elements.apiBase.value.trim(), error);
   });
 }
