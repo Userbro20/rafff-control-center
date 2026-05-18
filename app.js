@@ -4,7 +4,7 @@ const state = {
   selectedTypeKey: null,
 };
 
-const DEFAULT_API_BASE = "http://127.0.0.1:8787";
+const DEFAULT_API_BASE = "https://try-hockey-warming-meaning.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 
 const themeOptions = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
