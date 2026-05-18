@@ -4,6 +4,9 @@ const state = {
   selectedTypeKey: null,
 };
 
+const DEFAULT_API_BASE = "http://127.0.0.1:8787";
+const DEFAULT_API_KEY = "change-this-dashboard-key";
+
 const themeOptions = ["classic", "clean", "pro", "bold", "high_contrast", "ticket_king"];
 
 const elements = {
@@ -57,8 +60,8 @@ for (const theme of themeOptions) {
   elements.panelTheme.append(option);
 }
 
-elements.apiBase.value = localStorage.getItem("rafff-dashboard-api-base") || "";
-elements.apiKey.value = localStorage.getItem("rafff-dashboard-api-key") || "";
+elements.apiBase.value = localStorage.getItem("rafff-dashboard-api-base") || DEFAULT_API_BASE;
+elements.apiKey.value = localStorage.getItem("rafff-dashboard-api-key") || DEFAULT_API_KEY;
 
 async function api(path, options = {}) {
   const base = elements.apiBase.value.replace(/\/$/, "");
