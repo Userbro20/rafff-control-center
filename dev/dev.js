@@ -1,6 +1,10 @@
+let _offlineShown = false;
 function showOfflineMessage() {
   setStatus(false, "Offline");
-  el.terminalOutput.textContent += "\n[runner offline]\nThe dev console backend is currently offline.\nNo commands can be run until it is started again.\n";
+  if (!_offlineShown) {
+    el.terminalOutput.textContent += "\n[runner offline]\nBackend is offline. Use Reconnect when it\'s back up.\n";
+    _offlineShown = true;
+  }
   setConsoleEnabled(false);
 }
 const DEFAULT_API_BASE = "https://morrison-instructors-analysis-floors.trycloudflare.com";
@@ -135,6 +139,7 @@ function connectWs() {
   ws.onopen = () => {
     setStatus(true, "Online");
     setConsoleEnabled(true);
+    _offlineShown = false;
     appendOutput("\n[connected]\n");
   };
 
@@ -162,12 +167,18 @@ function connectWs() {
 
 async function checkHealth() {
   if (el.app.classList.contains("hidden")) return;
+  // If WebSocket is open and working, buttons are fine — don't interfere.
+  if (ws && ws.readyState === WebSocket.OPEN) return;
   try {
     const response = await fetch(`${apiBase()}/api/health`, {
       method: "GET",
       headers: { Authorization: `Bearer ${apiKey()}` },
     });
     if (!response.ok) throw new Error("down");
+    // Backend is healthy but WS is closed — auto-reconnect.
+    if (!ws || ws.readyState === WebSocket.CLOSED) {
+      connectWs();
+    }
   } catch {
     showOfflineMessage();
     if (ws && ws.readyState !== WebSocket.CLOSED) {
@@ -206,7 +217,7 @@ async function unlock() {
 
 function sendInput(text) {
   if (!ws || ws.readyState !== WebSocket.OPEN) {
-    setStatus(false, "Socket offline");
+    appendOutput("\n[not connected — press Reconnect]\n");
     return;
   }
   ws.send(JSON.stringify({ type: "input", data: text }));
