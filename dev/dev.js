@@ -80,6 +80,9 @@ function cleanTerminalOutput(text) {
     out = out.replace(/[^\n]\x08/g, "").replace(/\x08/g, "");
   }
 
+  // Drop prompt repaint artifacts like "%           host %" that cause visual drifting.
+  out = out.replace(/^%\s{10,}.*$/gm, "");
+
   return out;
 }
 
