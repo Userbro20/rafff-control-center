@@ -1,8 +1,6 @@
 const DEFAULT_API_BASE = "https://namely-essence-checking-punk.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
-const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
-const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
 
 const el = {
   lockscreen: document.getElementById("lockscreen"),
@@ -25,18 +23,11 @@ let token = "";
 let healthTimerId = null;
 
 function apiBase() {
-  return (localStorage.getItem(API_BASE_STORAGE_KEY) || DEFAULT_API_BASE).replace(/\/$/, "");
+  return DEFAULT_API_BASE.replace(/\/$/, "");
 }
 
 function apiKey() {
-  return localStorage.getItem(API_KEY_STORAGE_KEY) || DEFAULT_API_KEY;
-}
-
-function seedConnectionDefaults() {
-  if (/github\.io$/i.test(window.location.hostname)) {
-    localStorage.setItem(API_BASE_STORAGE_KEY, DEFAULT_API_BASE);
-    localStorage.setItem(API_KEY_STORAGE_KEY, DEFAULT_API_KEY);
-  }
+  return DEFAULT_API_KEY;
 }
 
 function setStatus(online, text) {
@@ -256,7 +247,6 @@ function wireTerminal() {
   });
 }
 
-seedConnectionDefaults();
 resetPin("Locked", false);
 wirePinPad();
 wireTerminal();
