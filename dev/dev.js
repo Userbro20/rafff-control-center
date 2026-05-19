@@ -13,6 +13,7 @@ const DEV_PIN = "8368";
 const DEFAULT_RUN_COMMAND = ".venv/bin/python -m src.main";
 const OUTPUT_STORAGE_KEY = "rafff-dev-console-output";
 const OUTPUT_MAX_CHARS = 120000;
+const HEALTH_FAILURE_THRESHOLD = 2;
 let runtimeApiBase = DEFAULT_API_BASE;
 
 const el = {
@@ -34,6 +35,7 @@ let enteredPin = "";
 let ws = null;
 let token = "";
 let healthTimerId = null;
+let healthFailureCount = 0;
 
 function apiBase() {
   return runtimeApiBase.replace(/\/$/, "");
@@ -82,6 +84,8 @@ function cleanTerminalOutput(text) {
 
   // Drop prompt repaint artifacts like "%           host %" that cause visual drifting.
   out = out.replace(/^%\s{10,}.*$/gm, "");
+  // Normalize occasional doubled leading dot from PTY echo artifacts.
+  out = out.replace(/^\.\.venv\/bin\//gm, ".venv/bin/");
 
   return out;
 }
@@ -183,6 +187,7 @@ function connectWs() {
   ws.onopen = () => {
     setStatus(true, "Online");
     setConsoleEnabled(true);
+    healthFailureCount = 0;
     _offlineShown = false;
     appendOutput("\n[connected]\n");
   };
@@ -212,21 +217,28 @@ function connectWs() {
 async function checkHealth() {
   if (el.app.classList.contains("hidden")) return;
   // If WebSocket is open and working, buttons are fine — don't interfere.
-  if (ws && ws.readyState === WebSocket.OPEN) return;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    healthFailureCount = 0;
+    return;
+  }
   try {
     const response = await fetch(`${apiBase()}/api/health`, {
       method: "GET",
       headers: { Authorization: `Bearer ${apiKey()}` },
     });
     if (!response.ok) throw new Error("down");
+    healthFailureCount = 0;
     // Backend is healthy but WS is closed — auto-reconnect.
     if (!ws || ws.readyState === WebSocket.CLOSED) {
       connectWs();
     }
   } catch {
-    showOfflineMessage();
-    if (ws && ws.readyState !== WebSocket.CLOSED) {
-      ws.close();
+    healthFailureCount += 1;
+    if (healthFailureCount >= HEALTH_FAILURE_THRESHOLD) {
+      showOfflineMessage();
+      if (ws && ws.readyState !== WebSocket.CLOSED) {
+        ws.close();
+      }
     }
   }
 }
@@ -270,7 +282,6 @@ function sendInput(text) {
 function runCurrentCommand() {
   const command = String(el.terminalInput.value || "");
   const normalized = normalizeCommand(command) || DEFAULT_RUN_COMMAND;
-  appendOutput(`\n$ ${normalized}\n`);
   sendInput(`${normalized}\n`);
   el.terminalInput.value = "";
 }
