@@ -17,6 +17,9 @@ const el = {
   terminalInput: document.getElementById("terminalInput"),
   sendBtn: document.getElementById("sendBtn"),
   ctrlCBtn: document.getElementById("ctrlCBtn"),
+  apiBaseInput: document.getElementById("apiBaseInput"),
+  apiKeyInput: document.getElementById("apiKeyInput"),
+  saveConnectionBtn: document.getElementById("saveConnectionBtn"),
 };
 
 let enteredPin = "";
@@ -30,6 +33,24 @@ function apiBase() {
 
 function apiKey() {
   return localStorage.getItem(API_KEY_STORAGE_KEY) || DEFAULT_API_KEY;
+}
+
+function primeConnectionInputs() {
+  el.apiBaseInput.value = apiBase();
+  el.apiKeyInput.value = apiKey();
+}
+
+function saveConnection() {
+  const nextBase = String(el.apiBaseInput.value || "").trim().replace(/\/$/, "");
+  const nextKey = String(el.apiKeyInput.value || "").trim();
+  if (!/^https?:\/\//i.test(nextBase)) {
+    appendOutput("\n[invalid API base URL]\n");
+    return;
+  }
+  localStorage.setItem(API_BASE_STORAGE_KEY, nextBase);
+  localStorage.setItem(API_KEY_STORAGE_KEY, nextKey || DEFAULT_API_KEY);
+  appendOutput(`\n[connection saved: ${nextBase}]\n`);
+  setStatus(false, "Saved");
 }
 
 function setStatus(online, text) {
@@ -55,6 +76,7 @@ function resetPin(message, isError = false) {
 }
 
 async function loginDev() {
+  const base = apiBase();
   const response = await fetch(`${apiBase()}/api/dev/login`, {
     method: "POST",
     headers: {
@@ -66,7 +88,7 @@ async function loginDev() {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(text || "Dev login failed");
+    throw new Error(text || `Dev login failed for ${base}`);
   }
   const json = await response.json();
   token = String(json.token || "");
@@ -112,6 +134,7 @@ function connectWs() {
 
   ws.onerror = () => {
     setStatus(false, "Socket error");
+    appendOutput("\n[socket error - check API base/tunnel and runner status]\n");
   };
 }
 
@@ -128,6 +151,7 @@ async function checkHealth() {
     if (ws && ws.readyState !== WebSocket.CLOSED) {
       ws.close();
     }
+    appendOutput("\n[runner offline]\n");
   }
 }
 
@@ -225,9 +249,11 @@ function wireTerminal() {
       runCurrentCommand();
     }
   });
+  el.saveConnectionBtn.onclick = () => saveConnection();
 }
 
 resetPin("Locked", false);
+primeConnectionInputs();
 wirePinPad();
 wireTerminal();
 appendOutput("Dev console ready. Unlock to connect.\n");

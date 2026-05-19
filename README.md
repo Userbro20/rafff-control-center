@@ -23,6 +23,9 @@ DASHBOARD_API_KEY=change-this-to-a-long-random-secret
 DASHBOARD_ALLOWED_ORIGINS=https://YOUR_USERNAME.github.io
 DASHBOARD_DEV_ENABLED=true
 DASHBOARD_DEV_PIN=8368
+DASHBOARD_DEV_RUNNER_ENABLED=true
+DASHBOARD_DEV_RUNNER_HOST=0.0.0.0
+DASHBOARD_DEV_RUNNER_PORT=8790
 ```
 
 If you publish under a repository pages URL, use the full origin, for example:
@@ -40,6 +43,22 @@ DASHBOARD_ALLOWED_ORIGINS=https://tickets.yourdomain.com
 ## Bot hosting note
 
 GitHub Pages only hosts the frontend. The API still needs to run on the bot host or another backend host that can reach Discord and the bot database.
+
+## Dev Console Without Bot Online
+
+To use `/dev` when the bot process is offline, run the standalone dev runner:
+
+```bash
+python -m src.web.dev_runner
+```
+
+Expose it with Cloudflare Tunnel on the runner port:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8790
+```
+
+Then set that tunnel URL in the `/dev` page connection inputs and save.
 
 ## Publish to GitHub Pages
 
