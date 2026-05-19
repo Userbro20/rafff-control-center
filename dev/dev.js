@@ -60,9 +60,21 @@ function setStatus(online, text) {
   el.status.classList.add(online ? "online" : "offline");
 }
 
+function stripAnsi(text) {
+  // Remove ANSI escape codes and common zsh prompt sequences
+  return text.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "")
+    .replace(/[\u001b\[\?][0-9;]*[a-zA-Z]/g, "")
+    .replace(/[\u001b][>=\[\(][^a-zA-Z]*[a-zA-Z]?/g, "")
+    .replace(/[\u001b][\[\(][^m]*m/g, "")
+    .replace(/[\u001b][^a-zA-Z]*[a-zA-Z]?/g, "")
+    .replace(/\u0008/g, "") // backspace
+    .replace(/\u001b/g, "");
+}
+
+// Patch appendOutput to clean output
+const _appendOutput = appendOutput;
 function appendOutput(text) {
-  el.terminalOutput.textContent += text;
-  el.terminalOutput.scrollTop = el.terminalOutput.scrollHeight;
+  _appendOutput(stripAnsi(text));
 }
 
 function setConsoleEnabled(enabled) {
