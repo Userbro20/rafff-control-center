@@ -1,6 +1,12 @@
-const DEFAULT_API_BASE = "https://namely-essence-checking-punk.trycloudflare.com";
+function showOfflineMessage() {
+  setStatus(false, "Offline");
+  el.terminalOutput.textContent += "\n[runner offline]\nThe dev console backend is currently offline.\nNo commands can be run until it is started again.\n";
+  setConsoleEnabled(false);
+}
+const DEFAULT_API_BASE = "https://collect-ch-theology-mercury.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
+let runtimeApiBase = DEFAULT_API_BASE;
 
 const el = {
   lockscreen: document.getElementById("lockscreen"),
@@ -23,7 +29,21 @@ let token = "";
 let healthTimerId = null;
 
 function apiBase() {
-  return DEFAULT_API_BASE.replace(/\/$/, "");
+  return runtimeApiBase.replace(/\/$/, "");
+}
+
+async function refreshApiBase() {
+  try {
+    const response = await fetch("./api-base.json", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    const value = String(data.apiBase || "").trim();
+    if (/^https?:\/\//i.test(value)) {
+      runtimeApiBase = value;
+    }
+  } catch {
+    // Keep default URL if config file is missing/unreachable.
+  }
 }
 
 function apiKey() {
@@ -39,6 +59,12 @@ function setStatus(online, text) {
 function appendOutput(text) {
   el.terminalOutput.textContent += text;
   el.terminalOutput.scrollTop = el.terminalOutput.scrollHeight;
+}
+
+function setConsoleEnabled(enabled) {
+  el.terminalInput.disabled = !enabled;
+  el.sendBtn.disabled = !enabled;
+  el.ctrlCBtn.disabled = !enabled;
 }
 
 function normalizeCommand(command) {
@@ -108,6 +134,7 @@ function connectWs() {
 
   ws.onopen = () => {
     setStatus(true, "Online");
+    setConsoleEnabled(true);
     appendOutput("\n[connected]\n");
   };
 
@@ -123,13 +150,13 @@ function connectWs() {
   };
 
   ws.onclose = () => {
-    setStatus(false, "Offline");
+    showOfflineMessage();
     appendOutput("\n[connection closed]\n");
   };
 
   ws.onerror = () => {
-    setStatus(false, "Socket error");
-    appendOutput("\n[socket error - check API base/tunnel and runner status]\n");
+    showOfflineMessage();
+    // Suppress CORS/network error spam
   };
 }
 
@@ -142,11 +169,10 @@ async function checkHealth() {
     });
     if (!response.ok) throw new Error("down");
   } catch {
-    setStatus(false, "Offline");
+    showOfflineMessage();
     if (ws && ws.readyState !== WebSocket.CLOSED) {
       ws.close();
     }
-    appendOutput("\n[runner offline]\n");
   }
 }
 
@@ -166,9 +192,11 @@ async function unlock() {
   }
 
   try {
+    await refreshApiBase();
     await loginDev();
     el.lockscreen.classList.add("hidden");
     el.app.classList.remove("hidden");
+    setConsoleEnabled(false);
     startHealthMonitor();
     connectWs();
   } catch (error) {
@@ -238,7 +266,10 @@ function wirePinPad() {
 function wireTerminal() {
   el.sendBtn.onclick = runCurrentCommand;
   el.ctrlCBtn.onclick = () => sendInput("\u0003");
-  el.reconnectBtn.onclick = () => connectWs();
+  el.reconnectBtn.onclick = async () => {
+    await refreshApiBase();
+    connectWs();
+  };
   el.terminalInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -250,4 +281,5 @@ function wireTerminal() {
 resetPin("Locked", false);
 wirePinPad();
 wireTerminal();
+refreshApiBase();
 appendOutput("Dev console ready. Unlock to connect.\n");
