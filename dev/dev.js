@@ -11,6 +11,8 @@ const DEFAULT_API_BASE = "https://morrison-instructors-analysis-floors.trycloudf
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
 const DEFAULT_RUN_COMMAND = ".venv/bin/python -m src.main";
+const OUTPUT_STORAGE_KEY = "rafff-dev-console-output";
+const OUTPUT_MAX_CHARS = 120000;
 let runtimeApiBase = DEFAULT_API_BASE;
 
 const el = {
@@ -81,8 +83,26 @@ function cleanTerminalOutput(text) {
   return out;
 }
 
+function saveOutputSnapshot() {
+  const text = String(el.terminalOutput.textContent || "");
+  const trimmed = text.length > OUTPUT_MAX_CHARS ? text.slice(-OUTPUT_MAX_CHARS) : text;
+  localStorage.setItem(OUTPUT_STORAGE_KEY, trimmed);
+}
+
+function restoreOutputSnapshot() {
+  const saved = localStorage.getItem(OUTPUT_STORAGE_KEY);
+  if (!saved) return false;
+  el.terminalOutput.textContent = saved;
+  el.terminalOutput.scrollTop = el.terminalOutput.scrollHeight;
+  return true;
+}
+
 function appendOutput(text) {
   el.terminalOutput.textContent += cleanTerminalOutput(text);
+  if (el.terminalOutput.textContent.length > OUTPUT_MAX_CHARS) {
+    el.terminalOutput.textContent = el.terminalOutput.textContent.slice(-OUTPUT_MAX_CHARS);
+  }
+  saveOutputSnapshot();
   el.terminalOutput.scrollTop = el.terminalOutput.scrollHeight;
 }
 
@@ -313,4 +333,6 @@ resetPin("Locked", false);
 wirePinPad();
 wireTerminal();
 refreshApiBase();
-appendOutput("Dev console ready. Unlock to connect.\n");
+if (!restoreOutputSnapshot()) {
+  appendOutput("Dev console ready. Unlock to connect.\n");
+}
