@@ -5,7 +5,7 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://songs-glad-skirts-tag.trycloudflare.com";
+const DEFAULT_API_BASE = "https://theme-across-implementing-authors.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
 const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
