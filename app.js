@@ -5,7 +5,7 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://theme-across-implementing-authors.trycloudflare.com";
+const DEFAULT_API_BASE = "https://tales-minister-colored-snow.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
 const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
@@ -188,6 +188,7 @@ async function callApi(path, options = {}) {
 async function connectAndLoad() {
   if (!unlocked) return;
   const base = apiBase();
+  const savedBase = (localStorage.getItem(API_BASE_STORAGE_KEY) || "").trim();
   setStatus(false, "Connecting...");
   try {
     const data = await callApi("/api/bootstrap");
@@ -198,6 +199,22 @@ async function connectAndLoad() {
     startHealthMonitor();
     renderAll();
   } catch (error) {
+    // Recover from stale browser-saved tunnel URLs by falling back to DEFAULT_API_BASE.
+    if (savedBase && savedBase !== DEFAULT_API_BASE) {
+      localStorage.removeItem(API_BASE_STORAGE_KEY);
+      try {
+        const retry = await callApi("/api/bootstrap");
+        state.data = retry;
+        state.selectedPanelKey = state.selectedPanelKey || retry.panels[0]?.panel_key || null;
+        state.selectedTypeKey = state.selectedTypeKey || retry.ticket_types[0]?.key || null;
+        setStatus(true, `Connected · ${retry.guild.name}`);
+        startHealthMonitor();
+        renderAll();
+        return;
+      } catch {
+        // Fall through to standard error status below.
+      }
+    }
     setStatus(false, connectionErrorText(base, error.message));
   }
 }
