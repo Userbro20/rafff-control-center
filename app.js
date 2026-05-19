@@ -5,7 +5,7 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://grab-chemicals-metals-lung.trycloudflare.com";
+const DEFAULT_API_BASE = "https://satin-upper-quantities-cordless.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
 const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
