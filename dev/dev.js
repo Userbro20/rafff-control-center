@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = "https://satin-upper-quantities-cordless.trycloudflare.com";
+const DEFAULT_API_BASE = "https://songs-glad-skirts-tag.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
