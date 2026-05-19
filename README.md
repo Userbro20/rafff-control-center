@@ -21,6 +21,8 @@ DASHBOARD_API_HOST=0.0.0.0
 DASHBOARD_API_PORT=8787
 DASHBOARD_API_KEY=change-this-to-a-long-random-secret
 DASHBOARD_ALLOWED_ORIGINS=https://YOUR_USERNAME.github.io
+DASHBOARD_DEV_ENABLED=true
+DASHBOARD_DEV_PIN=8368
 ```
 
 If you publish under a repository pages URL, use the full origin, for example:
@@ -57,3 +59,4 @@ Then click `Connect`.
 - Do not commit your real API key.
 - Restrict `DASHBOARD_ALLOWED_ORIGINS` to your actual Pages origin.
 - Put the API behind HTTPS before exposing it publicly.
+- The `/dev` panel exposes a real shell on your bot host. Keep the API key private, keep the PIN private, and avoid using this on public/shared devices.
