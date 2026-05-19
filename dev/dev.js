@@ -3,7 +3,7 @@ function showOfflineMessage() {
   el.terminalOutput.textContent += "\n[runner offline]\nThe dev console backend is currently offline.\nNo commands can be run until it is started again.\n";
   setConsoleEnabled(false);
 }
-const DEFAULT_API_BASE = "https://collect-ch-theology-mercury.trycloudflare.com";
+const DEFAULT_API_BASE = "https://morrison-instructors-analysis-floors.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
 let runtimeApiBase = DEFAULT_API_BASE;
