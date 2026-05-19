@@ -243,13 +243,21 @@ function wireTerminal() {
   el.sendBtn.onclick = runCurrentCommand;
   el.ctrlCBtn.onclick = () => sendInput("\u0003");
   el.reconnectBtn.onclick = () => connectWs();
+  el.saveConnectionBtn.onclick = () => {
+    saveConnection();
+    if (!el.app.classList.contains("hidden")) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
+      connectWs();
+    }
+  };
   el.terminalInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       runCurrentCommand();
     }
   });
-  el.saveConnectionBtn.onclick = () => saveConnection();
 }
 
 resetPin("Locked", false);
