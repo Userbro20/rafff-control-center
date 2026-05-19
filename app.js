@@ -5,7 +5,7 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://tales-minister-colored-snow.trycloudflare.com";
+const DEFAULT_API_BASE = "https://awareness-ignored-hawk-fires.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
 const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
