@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = "https://named-locale-xhtml-human.trycloudflare.com";
+const DEFAULT_API_BASE = "https://namely-essence-checking-punk.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
@@ -17,9 +17,6 @@ const el = {
   terminalInput: document.getElementById("terminalInput"),
   sendBtn: document.getElementById("sendBtn"),
   ctrlCBtn: document.getElementById("ctrlCBtn"),
-  apiBaseInput: document.getElementById("apiBaseInput"),
-  apiKeyInput: document.getElementById("apiKeyInput"),
-  saveConnectionBtn: document.getElementById("saveConnectionBtn"),
 };
 
 let enteredPin = "";
@@ -35,22 +32,11 @@ function apiKey() {
   return localStorage.getItem(API_KEY_STORAGE_KEY) || DEFAULT_API_KEY;
 }
 
-function primeConnectionInputs() {
-  el.apiBaseInput.value = apiBase();
-  el.apiKeyInput.value = apiKey();
-}
-
-function saveConnection() {
-  const nextBase = String(el.apiBaseInput.value || "").trim().replace(/\/$/, "");
-  const nextKey = String(el.apiKeyInput.value || "").trim();
-  if (!/^https?:\/\//i.test(nextBase)) {
-    appendOutput("\n[invalid API base URL]\n");
-    return;
+function seedConnectionDefaults() {
+  if (/github\.io$/i.test(window.location.hostname)) {
+    localStorage.setItem(API_BASE_STORAGE_KEY, DEFAULT_API_BASE);
+    localStorage.setItem(API_KEY_STORAGE_KEY, DEFAULT_API_KEY);
   }
-  localStorage.setItem(API_BASE_STORAGE_KEY, nextBase);
-  localStorage.setItem(API_KEY_STORAGE_KEY, nextKey || DEFAULT_API_KEY);
-  appendOutput(`\n[connection saved: ${nextBase}]\n`);
-  setStatus(false, "Saved");
 }
 
 function setStatus(online, text) {
@@ -62,6 +48,24 @@ function setStatus(online, text) {
 function appendOutput(text) {
   el.terminalOutput.textContent += text;
   el.terminalOutput.scrollTop = el.terminalOutput.scrollHeight;
+}
+
+function normalizeCommand(command) {
+  const trimmed = String(command || "").trim();
+  if (!trimmed) return "";
+  if (/^python(\s|$)/.test(trimmed)) {
+    return trimmed.replace(/^python(\s|$)/, ".venv/bin/python$1");
+  }
+  if (/^python3(\s|$)/.test(trimmed)) {
+    return trimmed.replace(/^python3(\s|$)/, ".venv/bin/python$1");
+  }
+  if (/^pip(\s|$)/.test(trimmed)) {
+    return trimmed.replace(/^pip(\s|$)/, ".venv/bin/pip$1");
+  }
+  if (/^pip3(\s|$)/.test(trimmed)) {
+    return trimmed.replace(/^pip3(\s|$)/, ".venv/bin/pip$1");
+  }
+  return trimmed;
 }
 
 function updatePinDots() {
@@ -192,8 +196,9 @@ function sendInput(text) {
 function runCurrentCommand() {
   const command = el.terminalInput.value;
   if (!command.trim()) return;
-  appendOutput(`\n$ ${command}\n`);
-  sendInput(`${command}\n`);
+  const normalized = normalizeCommand(command);
+  appendOutput(`\n$ ${normalized}\n`);
+  sendInput(`${normalized}\n`);
   el.terminalInput.value = "";
 }
 
@@ -243,15 +248,6 @@ function wireTerminal() {
   el.sendBtn.onclick = runCurrentCommand;
   el.ctrlCBtn.onclick = () => sendInput("\u0003");
   el.reconnectBtn.onclick = () => connectWs();
-  el.saveConnectionBtn.onclick = () => {
-    saveConnection();
-    if (!el.app.classList.contains("hidden")) {
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.close();
-      }
-      connectWs();
-    }
-  };
   el.terminalInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -260,8 +256,8 @@ function wireTerminal() {
   });
 }
 
+seedConnectionDefaults();
 resetPin("Locked", false);
-primeConnectionInputs();
 wirePinPad();
 wireTerminal();
 appendOutput("Dev console ready. Unlock to connect.\n");
