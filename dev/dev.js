@@ -22,6 +22,7 @@ const el = {
 let enteredPin = "";
 let ws = null;
 let token = "";
+let healthTimerId = null;
 
 function apiBase() {
   return (localStorage.getItem(API_BASE_STORAGE_KEY) || DEFAULT_API_BASE).replace(/\/$/, "");
@@ -114,6 +115,31 @@ function connectWs() {
   };
 }
 
+async function checkHealth() {
+  if (el.app.classList.contains("hidden")) return;
+  try {
+    const response = await fetch(`${apiBase()}/api/health`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${apiKey()}` },
+    });
+    if (!response.ok) throw new Error("down");
+  } catch {
+    setStatus(false, "Offline");
+    if (ws && ws.readyState !== WebSocket.CLOSED) {
+      ws.close();
+    }
+  }
+}
+
+function startHealthMonitor() {
+  if (healthTimerId !== null) {
+    clearInterval(healthTimerId);
+  }
+  healthTimerId = window.setInterval(() => {
+    checkHealth();
+  }, 6000);
+}
+
 async function unlock() {
   if (enteredPin !== DEV_PIN) {
     resetPin("Wrong PIN", true);
@@ -124,6 +150,7 @@ async function unlock() {
     await loginDev();
     el.lockscreen.classList.add("hidden");
     el.app.classList.remove("hidden");
+    startHealthMonitor();
     connectWs();
   } catch (error) {
     resetPin(String(error.message || "Login failed"), true);

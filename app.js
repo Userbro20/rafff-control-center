@@ -64,6 +64,7 @@ const el = {
 
 let enteredPin = "";
 let unlocked = false;
+let healthTimerId = null;
 
 for (const theme of THEME_OPTIONS) {
   const option = document.createElement("option");
@@ -106,6 +107,24 @@ function setStatus(online, text) {
   el.connectionBadge.textContent = text;
   el.connectionBadge.classList.remove("online", "offline");
   el.connectionBadge.classList.add(online ? "online" : "offline");
+}
+
+async function checkHealthSilently() {
+  if (!unlocked) return;
+  try {
+    await callApi("/api/health", { method: "GET" });
+  } catch {
+    setStatus(false, "Offline · bot or tunnel down");
+  }
+}
+
+function startHealthMonitor() {
+  if (healthTimerId !== null) {
+    clearInterval(healthTimerId);
+  }
+  healthTimerId = window.setInterval(() => {
+    checkHealthSilently();
+  }, 8000);
 }
 
 function updatePinDots() {
@@ -176,6 +195,7 @@ async function connectAndLoad() {
     state.selectedPanelKey = state.selectedPanelKey || data.panels[0]?.panel_key || null;
     state.selectedTypeKey = state.selectedTypeKey || data.ticket_types[0]?.key || null;
     setStatus(true, `Connected · ${data.guild.name}`);
+    startHealthMonitor();
     renderAll();
   } catch (error) {
     setStatus(false, connectionErrorText(base, error.message));
