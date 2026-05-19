@@ -60,21 +60,29 @@ function setStatus(online, text) {
   el.status.classList.add(online ? "online" : "offline");
 }
 
-function stripAnsi(text) {
-  // Remove ANSI escape codes and common zsh prompt sequences
-  return text.replace(/\u001b\[[0-9;]*[a-zA-Z]/g, "")
-    .replace(/[\u001b\[\?][0-9;]*[a-zA-Z]/g, "")
-    .replace(/[\u001b][>=\[\(][^a-zA-Z]*[a-zA-Z]?/g, "")
-    .replace(/[\u001b][\[\(][^m]*m/g, "")
-    .replace(/[\u001b][^a-zA-Z]*[a-zA-Z]?/g, "")
-    .replace(/\u0008/g, "") // backspace
-    .replace(/\u001b/g, "");
+function cleanTerminalOutput(text) {
+  let out = String(text || "");
+
+  // Normalize CRLF and strip standalone carriage returns used for cursor control.
+  out = out.replace(/\r\n/g, "\n").replace(/\r(?!\n)/g, "");
+  // Strip OSC (Operating System Command) sequences.
+  out = out.replace(/\x1b\][^\x07]*(?:\x07|\x1b\\)/g, "");
+  // Strip CSI sequences like colors, cursor movements, and bracketed paste mode.
+  out = out.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "");
+  // Strip remaining short ESC sequences.
+  out = out.replace(/\x1b[@-_]/g, "");
+
+  // Apply backspaces from terminal echo (e.g., ".\b.").
+  while (/\x08/.test(out)) {
+    out = out.replace(/[^\n]\x08/g, "").replace(/\x08/g, "");
+  }
+
+  return out;
 }
 
-// Patch appendOutput to clean output
-const _appendOutput = appendOutput;
 function appendOutput(text) {
-  _appendOutput(stripAnsi(text));
+  el.terminalOutput.textContent += cleanTerminalOutput(text);
+  el.terminalOutput.scrollTop = el.terminalOutput.scrollHeight;
 }
 
 function setConsoleEnabled(enabled) {
