@@ -1,4 +1,4 @@
-const DEFAULT_API_BASE = "https://theme-across-implementing-authors.trycloudflare.com";
+const DEFAULT_API_BASE = "https://named-locale-xhtml-human.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
