@@ -10,6 +10,7 @@ function showOfflineMessage() {
 const DEFAULT_API_BASE = "https://morrison-instructors-analysis-floors.trycloudflare.com";
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEV_PIN = "8368";
+const DEFAULT_RUN_COMMAND = ".venv/bin/python -m src.main";
 let runtimeApiBase = DEFAULT_API_BASE;
 
 const el = {
@@ -244,9 +245,8 @@ function sendInput(text) {
 }
 
 function runCurrentCommand() {
-  const command = el.terminalInput.value;
-  if (!command.trim()) return;
-  const normalized = normalizeCommand(command);
+  const command = String(el.terminalInput.value || "");
+  const normalized = normalizeCommand(command) || DEFAULT_RUN_COMMAND;
   appendOutput(`\n$ ${normalized}\n`);
   sendInput(`${normalized}\n`);
   el.terminalInput.value = "";
