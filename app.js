@@ -5,7 +5,10 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://awareness-ignored-hawk-fires.trycloudflare.com";
+const DEFAULT_API_BASE = "https://reproduction-ensemble-diameter-amsterdam.trycloudflare.com";
+const API_BASE_FALLBACKS = [
+  "https://reproduction-ensemble-diameter-amsterdam.trycloudflare.com",
+];
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
 const API_KEY_STORAGE_KEY = "rafff-dashboard-api-key";
@@ -99,6 +102,29 @@ function apiBase() {
   return `${origin}`;
 }
 
+async function resolveHealthyApiBase() {
+  const saved = (localStorage.getItem(API_BASE_STORAGE_KEY) || "").trim();
+  const candidates = [saved, DEFAULT_API_BASE, ...API_BASE_FALLBACKS].filter(Boolean);
+  const uniqueCandidates = [...new Set(candidates.map((v) => String(v).trim()))];
+
+  for (const candidate of uniqueCandidates) {
+    if (!/^https?:\/\//i.test(candidate)) continue;
+    const normalized = candidate.replace(/\/$/, "");
+    try {
+      const headers = new Headers();
+      headers.set("Authorization", `Bearer ${apiKey().trim()}`);
+      const response = await fetch(`${normalized}/api/health`, { method: "GET", headers });
+      if (response.ok) {
+        localStorage.setItem(API_BASE_STORAGE_KEY, normalized);
+        return normalized;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+  return null;
+}
+
 function apiKey() {
   return localStorage.getItem(API_KEY_STORAGE_KEY) || DEFAULT_API_KEY;
 }
@@ -187,10 +213,12 @@ async function callApi(path, options = {}) {
 
 async function connectAndLoad() {
   if (!unlocked) return;
-  const base = apiBase();
+  let base = apiBase();
   const savedBase = (localStorage.getItem(API_BASE_STORAGE_KEY) || "").trim();
   setStatus(false, "Connecting...");
   try {
+    const resolved = await resolveHealthyApiBase();
+    if (resolved) base = resolved;
     const data = await callApi("/api/bootstrap");
     state.data = data;
     state.selectedPanelKey = state.selectedPanelKey || data.panels[0]?.panel_key || null;
@@ -203,6 +231,8 @@ async function connectAndLoad() {
     if (savedBase && savedBase !== DEFAULT_API_BASE) {
       localStorage.removeItem(API_BASE_STORAGE_KEY);
       try {
+        const resolved = await resolveHealthyApiBase();
+        if (resolved) base = resolved;
         const retry = await callApi("/api/bootstrap");
         state.data = retry;
         state.selectedPanelKey = state.selectedPanelKey || retry.panels[0]?.panel_key || null;
