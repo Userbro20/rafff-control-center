@@ -7,9 +7,11 @@ function showOfflineMessage() {
   }
   setConsoleEnabled(false);
 }
-const DEFAULT_API_BASE = "https://morrison-instructors-analysis-floors.trycloudflare.com";
+const DEFAULT_API_BASE = "https://philips-reforms-bibliographic-coffee.trycloudflare.com";
+const API_BASE_FALLBACKS = [
+  "https://philips-reforms-bibliographic-coffee.trycloudflare.com",
+];
 const DEFAULT_API_KEY = "change-this-dashboard-key";
-const DEV_PIN = "8368";
 const DEFAULT_RUN_COMMAND = ".venv/bin/python -m src.main";
 const OUTPUT_STORAGE_KEY = "rafff-dev-console-output";
 const OUTPUT_MAX_CHARS = 120000;
@@ -41,6 +43,28 @@ function apiBase() {
   return runtimeApiBase.replace(/\/$/, "");
 }
 
+async function tryResolveApiBase() {
+  const candidates = [runtimeApiBase, ...API_BASE_FALLBACKS].filter(Boolean);
+  const uniqueCandidates = [...new Set(candidates.map((v) => String(v).trim()))];
+  for (const candidate of uniqueCandidates) {
+    if (!/^https?:\/\//i.test(candidate)) continue;
+    const normalized = candidate.replace(/\/$/, "");
+    try {
+      const response = await fetch(`${normalized}/api/health`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${apiKey()}` },
+      });
+      if (response.ok) {
+        runtimeApiBase = normalized;
+        return true;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+  return false;
+}
+
 async function refreshApiBase() {
   try {
     const response = await fetch("./api-base.json", { cache: "no-store" });
@@ -53,6 +77,7 @@ async function refreshApiBase() {
   } catch {
     // Keep default URL if config file is missing/unreachable.
   }
+  await tryResolveApiBase();
 }
 
 function apiKey() {
@@ -149,6 +174,7 @@ function resetPin(message, isError = false) {
 }
 
 async function loginDev() {
+  await tryResolveApiBase();
   const base = apiBase();
   const response = await fetch(`${apiBase()}/api/dev/login`, {
     method: "POST",
@@ -233,6 +259,7 @@ async function checkHealth() {
       connectWs();
     }
   } catch {
+    await tryResolveApiBase();
     healthFailureCount += 1;
     if (healthFailureCount >= HEALTH_FAILURE_THRESHOLD) {
       showOfflineMessage();
@@ -253,11 +280,6 @@ function startHealthMonitor() {
 }
 
 async function unlock() {
-  if (enteredPin !== DEV_PIN) {
-    resetPin("Wrong PIN", true);
-    return;
-  }
-
   try {
     await refreshApiBase();
     await loginDev();
