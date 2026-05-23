@@ -7,9 +7,9 @@ function showOfflineMessage() {
   }
   setConsoleEnabled(false);
 }
-const DEFAULT_API_BASE = "https://philips-reforms-bibliographic-coffee.trycloudflare.com";
+const DEFAULT_API_BASE = "https://particular-develops-sporting-sociology.trycloudflare.com";
 const API_BASE_FALLBACKS = [
-  "https://philips-reforms-bibliographic-coffee.trycloudflare.com",
+  "https://particular-develops-sporting-sociology.trycloudflare.com",
 ];
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const DEFAULT_RUN_COMMAND = ".venv/bin/python -m src.main";

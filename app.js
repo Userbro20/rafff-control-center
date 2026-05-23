@@ -5,9 +5,9 @@ const state = {
   activeTab: "panel",
 };
 
-const DEFAULT_API_BASE = "https://reproduction-ensemble-diameter-amsterdam.trycloudflare.com";
+const DEFAULT_API_BASE = "https://responsibility-bob-highs-year.trycloudflare.com";
 const API_BASE_FALLBACKS = [
-  "https://reproduction-ensemble-diameter-amsterdam.trycloudflare.com",
+  "https://responsibility-bob-highs-year.trycloudflare.com",
 ];
 const DEFAULT_API_KEY = "change-this-dashboard-key";
 const API_BASE_STORAGE_KEY = "rafff-dashboard-api-base";
